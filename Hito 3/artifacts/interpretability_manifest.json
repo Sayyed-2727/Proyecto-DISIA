@@ -1,0 +1,117 @@
+{
+  "dataset_source": "hito3_csv",
+  "random_state": 42,
+  "n_train_valid": 3200,
+  "n_test": 800,
+  "baseline_features_used": [
+    "Age_first",
+    "Gender_first",
+    "ICUType_first",
+    "GCS_mean",
+    "HR_mean",
+    "MAP_mean",
+    "SysABP_mean",
+    "DiasABP_mean",
+    "RespRate_mean",
+    "Temp_mean",
+    "Creatinine_mean",
+    "BUN_mean",
+    "WBC_mean",
+    "Urine_mean"
+  ],
+  "logistic_top10": [
+    {
+      "feature": "GCS_mean",
+      "coef_std": -0.6582176493622742,
+      "abs_coef_std": 0.6582176493622742
+    },
+    {
+      "feature": "BUN_mean",
+      "coef_std": 0.4180446210484123,
+      "abs_coef_std": 0.4180446210484123
+    },
+    {
+      "feature": "Age_first",
+      "coef_std": 0.3512790986424736,
+      "abs_coef_std": 0.3512790986424736
+    },
+    {
+      "feature": "HR_mean",
+      "coef_std": 0.2343323948103101,
+      "abs_coef_std": 0.2343323948103101
+    },
+    {
+      "feature": "Temp_mean",
+      "coef_std": -0.18164471749276292,
+      "abs_coef_std": 0.18164471749276292
+    },
+    {
+      "feature": "ICUType_first",
+      "coef_std": 0.165862445709475,
+      "abs_coef_std": 0.165862445709475
+    },
+    {
+      "feature": "RespRate_mean",
+      "coef_std": 0.08146933408049216,
+      "abs_coef_std": 0.08146933408049216
+    },
+    {
+      "feature": "WBC_mean",
+      "coef_std": 0.07390182832719608,
+      "abs_coef_std": 0.07390182832719608
+    },
+    {
+      "feature": "SysABP_mean",
+      "coef_std": -0.06243817249312579,
+      "abs_coef_std": 0.06243817249312579
+    },
+    {
+      "feature": "Gender_first",
+      "coef_std": -0.03501539999217749,
+      "abs_coef_std": 0.03501539999217749
+    }
+  ],
+  "rf_top10": [
+    {
+      "feature": "GCS_last",
+      "importance": 0.09251931316426906
+    },
+    {
+      "feature": "GCS_mean",
+      "importance": 0.027921691371052947
+    },
+    {
+      "feature": "GCS_max",
+      "importance": 0.026326523785129948
+    },
+    {
+      "feature": "Urine_mean",
+      "importance": 0.021045377323460297
+    },
+    {
+      "feature": "BUN_last",
+      "importance": 0.019799634667541928
+    },
+    {
+      "feature": "BUN_min",
+      "importance": 0.01583389244850124
+    },
+    {
+      "feature": "HCO3_mean",
+      "importance": 0.01545194964127979
+    },
+    {
+      "feature": "BUN_mean",
+      "importance": 0.014874359023081712
+    },
+    {
+      "feature": "Platelets_std",
+      "importance": 0.01145395296678613
+    },
+    {
+      "feature": "WBC_last",
+      "importance": 0.01056197606075757
+    }
+  ],
+  "xgboost_interpretability": "not_available_in_current_environment"
+}

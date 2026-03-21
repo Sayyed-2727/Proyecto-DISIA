@@ -1,0 +1,17 @@
+feature_hito2,presente_en_processed_features_48h_setA,tipo_esperado_hito2
+Age_first,True,estatica
+Gender_first,True,estatica
+ICUType_first,True,estatica
+GCS_mean,True,agregada_mean_0_48h
+HR_mean,True,agregada_mean_0_48h
+MAP_mean,True,agregada_mean_0_48h
+SysABP_mean,True,agregada_mean_0_48h
+DiasABP_mean,True,agregada_mean_0_48h
+RespRate_mean,True,agregada_mean_0_48h
+Temp_mean,True,agregada_mean_0_48h
+Creatinine_mean,True,agregada_mean_0_48h
+BUN_mean,True,agregada_mean_0_48h
+WBC_mean,True,agregada_mean_0_48h
+Urine_mean,True,agregada_mean_0_48h
+TOTAL_FEATURES_FULL_PIPELINE,336,all_columns_except_RecordID_target
+TOTAL_FEATURES_BASELINE_HITO2_REPLICATED,14,subset_14_features

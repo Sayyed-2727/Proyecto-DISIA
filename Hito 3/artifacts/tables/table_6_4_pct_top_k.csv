@@ -1,0 +1,5 @@
+Model,%fallecidos_top25,%fallecidos_top50,%fallecidos_top100,%fallecidos_top200
+baseline_hito2,0.64,0.46,0.43,0.305
+logistic_regression,0.8,0.68,0.53,0.39
+random_forest,0.72,0.64,0.52,0.39
+baseline_hito2_replicated_60_20_20,0.52,0.48,0.47,0.37

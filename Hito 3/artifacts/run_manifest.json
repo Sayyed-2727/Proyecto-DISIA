@@ -1,0 +1,70 @@
+{
+  "dataset_source": "hito3_csv",
+  "dataset_rows": 4000,
+  "dataset_columns": 338,
+  "prevalence": 0.1385,
+  "baseline_hito2_features_expected": [
+    "Age_first",
+    "Gender_first",
+    "ICUType_first",
+    "GCS_mean",
+    "HR_mean",
+    "MAP_mean",
+    "SysABP_mean",
+    "DiasABP_mean",
+    "RespRate_mean",
+    "Temp_mean",
+    "Creatinine_mean",
+    "BUN_mean",
+    "WBC_mean",
+    "Urine_mean"
+  ],
+  "baseline_hito2_features_used": [
+    "Age_first",
+    "Gender_first",
+    "ICUType_first",
+    "GCS_mean",
+    "HR_mean",
+    "MAP_mean",
+    "SysABP_mean",
+    "DiasABP_mean",
+    "RespRate_mean",
+    "Temp_mean",
+    "Creatinine_mean",
+    "BUN_mean",
+    "WBC_mean",
+    "Urine_mean"
+  ],
+  "random_state": 42,
+  "n_iter": 30,
+  "models_ran": [
+    "baseline_hito2_replicated_60_20_20",
+    "logistic_regression",
+    "random_forest"
+  ],
+  "best_params": {
+    "logistic_regression": {
+      "best_cv_auc": 0.8289279939018179,
+      "best_params": {
+        "model__solver": "liblinear",
+        "model__penalty": "l1",
+        "model__class_weight": null,
+        "model__C": 0.1
+      }
+    },
+    "random_forest": {
+      "best_cv_auc": 0.8385407674670541,
+      "best_params": {
+        "model__n_estimators": 400,
+        "model__min_samples_split": 2,
+        "model__min_samples_leaf": 5,
+        "model__max_features": 0.5,
+        "model__max_depth": 16,
+        "model__class_weight": null
+      }
+    }
+  },
+  "tables_dir": "Hito 3\\artifacts\\tables",
+  "figures_dir": "Hito 3\\artifacts\\figures",
+  "predictions_dir": "Hito 3\\artifacts\\predictions"
+}

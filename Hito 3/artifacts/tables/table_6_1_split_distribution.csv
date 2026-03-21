@@ -1,0 +1,5 @@
+Split,N_estancias,N_fallecidos,Prevalencia_pct
+Train,2400,332,13.833333333333334
+Validation,800,111,13.875
+Test,800,111,13.875
+Total,4000,554,13.85
