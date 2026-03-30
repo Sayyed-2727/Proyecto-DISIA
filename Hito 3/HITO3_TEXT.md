@@ -1,245 +1,360 @@
-# Capitulo 2. Los datos: origen, descripcion y analisis
+# Hito 3 - Modelado, experimentación y validación
+## Proyecto MIMIC-TRIAGE (adaptado a PhysioNet/CinC 2012)
 
-## 2.1 Introduccion
-Este capitulo describe el origen, la estructura y la calidad de los datos usados en MIMIC-TRIAGE para el Hito 2, siguiendo la plantilla del profesor. El objetivo es demostrar que la formulacion del problema de priorizacion clinica se apoya en una comprension correcta del dataset, de su unidad de analisis y de sus limitaciones.
+## 1. Objetivo del Hito 3
 
-La tarea se define como prediccion de mortalidad intrahospitalaria a nivel de estancia UCI, usando unicamente informacion disponible en las primeras 48 horas desde el ingreso. El resultado del capitulo es un dataset tabular por estancia, listo para modelado en Hito 3, junto con un analisis exploratorio orientado a decisiones de modelado y evaluacion.
+El objetivo de este hito es desarrollar la fase de modelado del proyecto, diseñando y validando experimentalmente distintos modelos de aprendizaje automático para estimar el riesgo de mortalidad intrahospitalaria y generar un ranking clínico de priorización.
 
-El trabajo es reproducible y ejecutable en el notebook `HITO2_MIMIC_TRIAGE.ipynb`, con salida principal en `./csvs/processed_features_48h_setA.csv`.
+A diferencia del Hito 2, centrado en el análisis exploratorio de los datos y en la formulación del problema, en este hito el foco se traslada a la comparación de modelos, la evaluación rigurosa de su rendimiento y la selección de una solución principal que pueda considerarse adecuada para el caso de uso.
 
-## 2.2 Fuentes, origen y tamano de los datos
-La fuente principal es el dataset del reto PhysioNet/Computing in Cardiology 2012, disponible en el repositorio local en:
+En concreto, este hito persigue tres metas principales:
 
-`./predicting-mortality-of-icu-patients-the-physionet-computing-in-cardiology-challenge-2012-1.0.0/`
-
-El dataset se distribuye por conjuntos (Set A, B y C), con outcomes en archivos separados (`Outcomes-a.txt`, `Outcomes-b.txt`, `Outcomes-c.txt`). En el raw local:
-- `set-a`: 4000 ficheros de estancias (`*.txt`)
-- `set-b`: 4000 ficheros de estancias (`*.txt`)
-- `set-c`: no descomprimido como carpeta en esta copia local (si existen `set-c.zip` y `Outcomes-c.txt`)
-
-Para Hito 2 se usa Set A (etiquetado), con verificacion explicita:
-- 4000 ficheros en `set-a`
-- 4000 filas en `Outcomes-a.txt`
-- correspondencia 1:1 por `RecordID` (sin faltantes ni duplicados cruzados)
-
-Formato raw por estancia:
-- cada fichero representa una estancia UCI
-- esquema largo con columnas `Time, Parameter, Value`
-- una observacion raw = una medicion de un parametro clinico en un instante temporal
-
-Unidad de analisis final para modelado:
-- una fila por estancia (`RecordID`)
-- features agregadas en ventana explicita 0-48h
-- etiqueta: `In-hospital_death` (solo de outcomes, no del raw de senales)
-
-Ventana temporal:
-- se aplica filtro `Time <= 48h` de forma explicita para evitar leakage temporal
-- en Set A, el maximo observado en raw es 48.0h
-
-## 2.3 Inventario de datos
-El inventario se organiza en tres niveles: raw clinico por estancia, outcomes con etiqueta y dataset procesado para modelado.
-
-Artefactos principales del Hito 2:
-- Notebook de trabajo: `HITO2_MIMIC_TRIAGE.ipynb`
-- Dataset procesado para Hito 3: `./csvs/processed_features_48h_setA.csv`
-- Reporte de validacion de CSVs heredados: `./csvs/csv_validation_report.csv`
-- Auditoria de datos: `./csvs/hito2_data_audit_setA.json`
-
-[TABLA 2.1 AQUI]
-
-**Caption Tabla 2.1.** Diccionario resumido de variables clinicas relevantes en Set A (raw 0-48h).  
-
-| Variable | Tipo | Descripcion clinica | Unidad (referencia) | Rol en pipeline |
-|---|---|---|---|---|
-| RecordID | Identificador | ID unico de estancia UCI | - | Clave de union |
-| Age | Estatica | Edad al ingreso | years | Feature estatica |
-| Gender | Estatica | Sexo codificado (0/1) | - | Feature estatica |
-| ICUType | Estatica | Tipo de UCI (1-4) | - | Segmentacion/cohorte |
-| Height | Estatica | Altura al ingreso | cm | Feature estatica (con faltantes codificados) |
-| Weight | Estatica | Peso al ingreso | kg | Feature estatica (con faltantes codificados) |
-| HR | Temporal | Frecuencia cardiaca | bpm | Feature temporal agregada |
-| MAP | Temporal | Presion arterial media invasiva | mmHg | Feature temporal agregada |
-| SysABP | Temporal | Presion arterial sistolica invasiva | mmHg | Feature temporal agregada |
-| DiasABP | Temporal | Presion arterial diastolica invasiva | mmHg | Feature temporal agregada |
-| RespRate | Temporal | Frecuencia respiratoria | breaths/min | Feature temporal agregada |
-| Temp | Temporal | Temperatura corporal | C | Feature temporal agregada |
-| Creatinine | Temporal | Funcion renal (creatinina) | mg/dL | Feature temporal agregada |
-| BUN | Temporal | Nitrogeno ureico | mg/dL aprox. | Feature temporal agregada |
-| WBC | Temporal | Leucocitos | K/uL | Feature temporal agregada |
-| Urine | Temporal | Diuresis | mL | Feature temporal agregada |
-| In-hospital_death | Etiqueta | Mortalidad intrahospitalaria | binaria (0/1) | Target |
-
-[TABLA 2.2 AQUI]
-
-**Caption Tabla 2.2.** Esquema de ingenieria de variables por estancia en ventana 0-48h (`processed_features_48h_setA.csv`).  
-
-| Grupo de variables | Operador/feature | Definicion operacional | Ejemplo de nombre de columna | Justificacion |
-|---|---|---|---|---|
-| Temporales | first | Primer valor observado en 0-48h | `HR_first` | Estado inicial temprano |
-| Temporales | last | Ultimo valor observado en 0-48h | `Creatinine_last` | Estado al final de ventana |
-| Temporales | mean | Media en 0-48h | `MAP_mean` | Nivel promedio de severidad |
-| Temporales | min | Minimo en 0-48h | `SysABP_min` | Eventos de extremo inferior |
-| Temporales | max | Maximo en 0-48h | `Temp_max` | Eventos de extremo superior |
-| Temporales | std | Desviacion estandar en 0-48h | `RespRate_std` | Variabilidad fisiologica |
-| Temporales | n_mediciones | Numero de observaciones en 0-48h | `WBC_n_mediciones` | Intensidad de monitorizacion |
-| Temporales | flag_medido | Indicador de al menos 1 medicion | `Lactate_flag_medido` | Missingness informativo |
-| Estaticas | first (equivalente) | Valor unico/estable por estancia | `Age_first`, `ICUType_first` | Cohorte y ajuste de riesgo |
-| Etiqueta | outcome | Mortalidad intrahospitalaria | `In-hospital_death` | Objetivo de prediccion |
-
-[TABLA 2.3 AQUI]
-
-**Caption Tabla 2.3.** Inventario cuantitativo de datos usados en Hito 2 y decision de reutilizacion de CSVs existentes.  
-
-| Elemento | Tamano/estado | Uso en Hito 2 | Comentario |
-|---|---|---|---|
-| `set-a/*.txt` | 4000 estancias | Si | Fuente raw principal etiquetable |
-| `Outcomes-a.txt` | 4000 filas | Si | Etiqueta `In-hospital_death` |
-| Match IDs set-a vs outcomes-a | 1:1 | Si | Sin discrepancias |
-| `processed_features_48h_setA.csv` | 4000 x 338 | Si | Dataset final para Hito 3 |
-| CSVs heredados en `./csvs/` | 4 ficheros validados | No (como input de modelado) | No son matriz por estancia 0-48h; riesgo de leakage en resumentes |
-
-### 2.3.1 Limitaciones y sesgos del dato
-- **Missingness no aleatorio**: la ausencia de medicion suele depender de decision clinica, no de azar; por eso se modela `flag_medido` y `n_mediciones`.
-- **Muestreo irregular**: las series tienen frecuencias heterogeneas entre variables y entre estancias; se resume por agregaciones robustas en 0-48h.
-- **Outliers y unidades**: algunas variables tienen rangos extremos o unidades no uniformes entre fuentes; se requiere control de calidad en Hito 3 (winsorizacion/escala, segun modelo).
-- **Riesgo de leakage**: campos como `Length_of_stay` y `Survival` no se usan como features de triage temprano.
-- **Desbalanceo de clases**: mortalidad positiva ~13.85%, por lo que se deben priorizar metricas y estrategias robustas a clases desbalanceadas.
-
-## 2.4 Analisis de los datos
-El analisis exploratorio se orienta a preguntas concretas para formular correctamente el problema de ranking clinico.
-
-### Pregunta 1: Cual es el grado de desbalanceo de la etiqueta?
-[FIGURA 2.1 AQUI]
-
-Archivo: `./reports/figures/label_imbalance_setA.png`  
-Caption: **Distribucion de la etiqueta de mortalidad intrahospitalaria en Set A.**
-
-Interpretacion:
-1. La clase positiva (fallece) representa aproximadamente el 13.85% de estancias, frente al 86.15% de supervivientes.
-2. El problema es desbalanceado y no debe evaluarse solo con accuracy.
-3. Este patron justifica incluir metricas de ranking top-k y calibracion probabilistica.
-
-### Pregunta 2: Como se distribuye la captura temporal de mediciones en 0-48h?
-[FIGURA 2.2 AQUI]
-
-Archivo: `./reports/figures/temporal_coverage_setA_0_48h.png`  
-Caption: **Cobertura temporal de mediciones por hora desde ingreso (0-48h).**
-
-Interpretacion:
-1. Existe actividad de medicion durante toda la ventana, con variacion por hora.
-2. La evidencia respalda que 0-48h contiene senal clinica suficiente para triage inicial.
-3. La irregularidad temporal sugiere representar dinamica mediante resumenes por estancia.
-
-### Pregunta 3: Que variables presentan mayor ausencia de medicion?
-[FIGURA 2.3 AQUI]
-
-Archivo: `./reports/figures/missingness_setA_0_48h.png`  
-Caption: **Missingness por variable en Set A (porcentaje sin medicion en 0-48h).**
-
-Interpretacion:
-1. Variables como `TroponinI`, `Cholesterol` y `TroponinT` tienen alta ausencia, compatible con pruebas selectivas.
-2. Variables basicas (`Age`, `Gender`, `ICUType`, `Weight`, `Height`) tienen cobertura completa.
-3. El missingness aporta informacion clinica implita y no debe eliminarse sin modelarlo.
-
-### Pregunta 4: Cual es el perfil de variables estaticas de la cohorte?
-[FIGURA 2.4 AQUI]
-
-Archivo: `./reports/figures/static_distributions_setA.png`  
-Caption: **Distribuciones de variables estaticas: edad, genero y tipo de UCI.**
-
-Interpretacion:
-1. La cohorte incluye diversidad de edades y tipos de UCI, sin concentrarse en un unico subgrupo.
-2. El tipo de UCI introduce heterogeneidad de case-mix que debe controlarse en modelado.
-3. Estas variables son candidatas naturales de ajuste en cualquier baseline.
-
-### Pregunta 5: Que variables concentran mayor volumen de monitorizacion?
-[FIGURA 2.5 AQUI]
-
-Archivo: `./reports/figures/measurement_volume_top20_setA_0_48h.png`  
-Caption: **Top-20 variables por volumen de mediciones en 0-48h.**
-
-Interpretacion:
-1. Variables hemodinamicas y de laboratorio rutinario concentran la mayor parte del volumen.
-2. Esto confirma que el dataset combina monitorizacion continua y analitica discreta.
-3. El volumen desigual entre variables refuerza el uso de features de conteo (`n_mediciones`).
-
-### Pregunta 6: Existen relaciones entre variables fisiologicas agregadas?
-[FIGURA 2.6 AQUI]
-
-Archivo: `./reports/figures/correlation_subset_setA_0_48h.png`  
-Caption: **Matriz de correlacion para un subconjunto de variables medias en 0-48h.**
-
-Interpretacion:
-1. Se observan relaciones moderadas entre variables hemodinamicas relacionadas fisiologicamente.
-2. No hay colinealidad perfecta en el subconjunto mostrado, lo que permite usar modelos lineales baseline.
-3. Para Hito 3 conviene complementar con modelos no lineales y analisis de importancia.
-
-### Pregunta 7: Cambia algun marcador fisiologico entre fallecidos y no fallecidos?
-[FIGURA 2.7 AQUI]
-
-Archivo: `./reports/figures/hr_mean_by_outcome_setA.png`  
-Caption: **Comparacion de `HR_mean` por etiqueta de mortalidad.**
-
-Interpretacion:
-1. La distribucion de `HR_mean` en fallecidos aparece desplazada respecto al grupo no fallecido.
-2. Aunque no implica causalidad, sugiere utilidad predictiva combinada con otras variables.
-3. Este tipo de contraste apoya la formulacion de scoring probabilistico multivariable.
-
-## 2.5 Evaluacion del rendimiento. Metricas
-La salida del sistema se define como una probabilidad de mortalidad por estancia:
-
-`p_hat(i) = P(In-hospital_death_i = 1 | x_i, ventana 0-48h)`
-
-donde `x_i` es el vector de features agregadas de la estancia `i`.  
-El ranking clinico se obtiene ordenando de mayor a menor:
-
-`ranking = sort_desc( p_hat(i) )`
-
-### Metricas probabilisticas
-- **AUC-ROC**: mide capacidad de discriminacion global entre fallecidos y no fallecidos.
-- **Brier score**: mide error cuadratico medio de probabilidades predichas (calibracion + discriminacion).
-
-### Metricas de ranking clinico
-- **Recall@k**: proporcion de fallecidos capturados en los primeros `k` pacientes del ranking.
-- **% fallecidos en top-k**: pureza de la zona prioritaria del ranking (fallecidos/k).
-
-[TABLA 2.4 AQUI]
-
-**Caption Tabla 2.4.** Resultado baseline de scoring probabilistico y ranking (split reproducible por `RecordID % 5 == 0` para test).  
-
-| Metrica | Valor |
-|---|---:|
-| AUC-ROC | 0.7806 |
-| Brier score | 0.0887 |
-| Recall@25 | 0.1684 |
-| Recall@50 | 0.2421 |
-| Recall@100 | 0.4526 |
-| Recall@200 | 0.6421 |
-| % fallecidos en top-25 | 0.6400 |
-| % fallecidos en top-50 | 0.4600 |
-| % fallecidos en top-100 | 0.4300 |
-| % fallecidos en top-200 | 0.3050 |
-
-Interpretacion de metricas:
-1. El baseline ya separa riesgo de forma util (AUC ~0.78) sin usar informacion posterior a 48h.
-2. En terminos operativos, el top-k concentra mortalidad por encima de la prevalencia base.
-3. Para Hito 3 se debe mejorar robustez con validacion formal, calibracion y comparacion entre modelos.
-
-### Conexion con Hito 3 (modelado)
-Con este capitulo queda cerrada la formulacion de problema:
-- input: features por estancia en 0-48h (`processed_features_48h_setA.csv`)
-- output: probabilidad de mortalidad
-- decision: ranking descendente por riesgo para priorizacion
-- evaluacion: AUC/Brier + metricas top-k orientadas a triage
+1. definir un baseline reproducible;
+2. comparar distintos modelos candidatos bajo una metodología homogénea;
+3. validar los resultados desde dos perspectivas complementarias: calidad probabilística y utilidad operativa para ranking clínico.
 
 ---
 
-## Checklist final: "Listo para entregar?"
-- [x] Estructura del capitulo exacta (2.1 a 2.5).
-- [x] Origen, fuentes y tamano del dataset descritos con evidencia.
-- [x] Inventario de datos con TABLA 2.1 y TABLA 2.2 incluidas.
-- [x] Limitaciones y sesgos del dato explicitados.
-- [x] Analisis EDA orientado por preguntas (no solo graficos).
-- [x] Todas las figuras con marcador, ruta, caption e interpretacion.
-- [x] Formulacion de scoring/ranking y metricas de rendimiento definida.
-- [x] Conexion al Hito 3 incluida.
+## 2. Punto de partida y datos utilizados
+
+El modelado parte del dataset tabular `processed_features_48h_setA.csv`, construido a partir de los datos raw de PhysioNet/CinC 2012 correspondientes a Set A.
+
+Aunque el origen de los datos es temporal, en este trabajo no se realiza modelado secuencial explícito. Las mediciones registradas durante las primeras 48 horas de cada estancia se transforman en una representación tabular agregada por paciente, utilizando estadísticas resumen como valor inicial, valor final, media, mínimo, máximo, desviación típica, número de mediciones y bandera de presencia.
+
+Esta decisión metodológica permite trabajar con modelos tabulares supervisados y facilita la comparación experimental, la validación y la interpretabilidad, manteniendo al mismo tiempo información clínica relevante derivada de la evolución temprana del paciente.
+
+El dataset final contiene una fila por estancia y una variable objetivo binaria, `In-hospital_death`, que indica si el paciente falleció durante el ingreso hospitalario.
+
+---
+
+## 3. Formulación del problema
+
+El problema se plantea como una tarea de **scoring probabilístico de riesgo**, donde cada estancia recibe una probabilidad estimada de mortalidad intrahospitalaria.
+
+A partir de ese score continuo, las estancias pueden ordenarse de mayor a menor riesgo para construir un **ranking clínico de priorización**. Esta formulación permite evaluar el sistema no solo como clasificador binario, sino también como herramienta de apoyo a la toma de decisiones en escenarios de triaje o asignación limitada de recursos.
+
+Por tanto, el rendimiento se analiza desde dos perspectivas:
+
+- **métricas probabilísticas**, para medir discriminación y calidad del score;
+- **métricas top-k**, para medir la capacidad del modelo de concentrar pacientes fallecidos en la parte alta del ranking.
+
+---
+
+## 4. Variables empleadas en el baseline
+
+Como punto de partida se definió un baseline basado en regresión logística sobre un subconjunto reducido de variables clínicas y demográficas seleccionadas manualmente.
+
+Las variables utilizadas fueron:
+
+- `Age_first`
+- `Gender_first`
+- `ICUType_first`
+- `GCS_mean`
+- `HR_mean`
+- `MAP_mean`
+- `SysABP_mean`
+- `DiasABP_mean`
+- `RespRate_mean`
+- `Temp_mean`
+- `Creatinine_mean`
+- `BUN_mean`
+- `WBC_mean`
+- `Urine_mean`
+
+La selección de este conjunto responde a dos criterios principales: simplicidad e interpretabilidad. Se priorizó un subconjunto compacto pero clínicamente razonable, suficiente para establecer una referencia inicial antes de explorar modelos más complejos.
+
+---
+
+## 5. Baseline experimental
+
+### 5.1. Justificación del modelo baseline
+
+El primer experimento se construyó con regresión logística. Este modelo se seleccionó como baseline por varias razones:
+
+1. es un modelo estándar y ampliamente utilizado en problemas de predicción de riesgo clínico;
+2. proporciona una referencia interpretable;
+3. permite estimar directamente probabilidades continuas de mortalidad;
+4. resulta adecuado como punto de comparación para modelos no lineales posteriores.
+
+### 5.2. Implementación
+
+Inicialmente se desarrolló una implementación manual del baseline con imputación por mediana, estandarización y ajuste de regresión logística mediante descenso del gradiente. Posteriormente, este baseline se reimplementó con `scikit-learn` para disponer de una versión más estándar, reproducible y fácil de extender a la comparación de modelos.
+
+La versión oficial del baseline quedó definida mediante:
+
+- imputación por mediana;
+- estandarización;
+- regresión logística con `scikit-learn`.
+
+La partición inicial entrenamiento/test se construyó de forma determinista a partir de `RecordID`, con 3195 estancias para entrenamiento y 805 para test.
+
+### 5.3. Resultados del baseline
+
+El baseline obtuvo en test:
+
+- **AUC-ROC:** 0.7806
+- **Brier score:** 0.0887
+
+Además, desde el punto de vista del ranking clínico:
+
+- **Recall@25:** 0.1684
+- **Recall@50:** 0.2421
+- **Recall@100:** 0.4526
+- **Recall@200:** 0.6421
+
+La prevalencia de mortalidad en test fue aproximadamente del 11.8%, mientras que el porcentaje de fallecidos en el top-25 alcanzó el 64%, lo que confirma que incluso este baseline sencillo ya concentra riesgo real en la parte alta del ranking.
+
+En conjunto, estos resultados muestran que el dataset procesado contiene señal suficiente para abordar el problema como una tarea de scoring probabilístico y priorización clínica.
+
+---
+
+## 6. Comparación inicial de modelos
+
+Una vez definido el baseline, se incorporaron dos modelos no lineales para comparación inicial:
+
+- **Random Forest**
+- **HistGradientBoostingClassifier**
+
+Ambos modelos se evaluaron usando exactamente:
+
+- el mismo subconjunto de variables;
+- la misma partición entrenamiento/test;
+- las mismas métricas probabilísticas;
+- y las mismas métricas top-k de ranking clínico.
+
+### 6.1. Random Forest
+
+Random Forest se seleccionó por ser un modelo especialmente adecuado para datos tabulares, capaz de capturar relaciones no lineales e interacciones entre variables sin requerir un preprocesado complejo.
+
+Resultados en test:
+
+- **AUC-ROC:** 0.8520
+- **Brier score:** 0.0818
+
+Top-k:
+
+- **Recall@25:** 0.1789
+- **Recall@50:** 0.2947
+- **Recall@100:** 0.4632
+- **% fallecidos top-25:** 0.68
+
+Estos resultados mejoran claramente al baseline lineal.
+
+### 6.2. Gradient Boosting
+
+Gradient Boosting se incorporó como segundo modelo basado en árboles, con el objetivo de comprobar si una estrategia de boosting podía superar a Random Forest.
+
+Resultados en test:
+
+- **AUC-ROC:** 0.8401
+- **Brier score:** 0.0839
+
+Top-k:
+
+- **Recall@25:** 0.1579
+- **Recall@50:** 0.2947
+- **Recall@100:** 0.4632
+- **% fallecidos top-25:** 0.60
+
+Aunque mejora respecto a la regresión logística, no supera a Random Forest en esta comparación inicial.
+
+### 6.3. Interpretación de la comparación inicial
+
+La comparación inicial mostró que los modelos basados en árboles mejoran de forma clara al baseline lineal. Esto sugiere que el problema contiene relaciones no lineales e interacciones entre variables clínicas que la regresión logística no captura completamente.
+
+En esta primera fase, Random Forest emergió como el modelo más fuerte, con mejor AUC-ROC, mejor Brier score y mejor comportamiento top-k en la partición test utilizada.
+
+---
+
+## 7. Validación cruzada estratificada
+
+Dado que una única partición train/test no es suficiente para extraer conclusiones sólidas, se realizó una validación cruzada estratificada de 5 folds sobre los tres modelos candidatos:
+
+- Logistic Regression
+- Random Forest
+- Gradient Boosting
+
+Las métricas consideradas en esta fase fueron:
+
+- **AUC-ROC**
+- **Brier score**
+
+### 7.1. Resultados medios
+
+Los resultados medios en validación cruzada fueron:
+
+- **Gradient Boosting**
+  - AUC-ROC medio: 0.8254
+  - Brier medio: 0.0969
+
+- **Random Forest**
+  - AUC-ROC medio: 0.8222
+  - Brier medio: 0.0963
+
+- **Logistic Regression**
+  - AUC-ROC medio: 0.7866
+  - Brier medio: 0.1026
+
+### 7.2. Interpretación
+
+La validación cruzada confirmó que los modelos basados en árboles superan consistentemente al baseline lineal. Sin embargo, también mostró que la diferencia entre Random Forest y Gradient Boosting es mucho más ajustada de lo que parecía en la partición única inicial.
+
+En promedio:
+
+- Gradient Boosting presentó el mejor AUC medio;
+- Random Forest presentó el mejor Brier medio.
+
+Como las diferencias fueron pequeñas y la dispersión entre folds similar, ambos modelos se consideraron candidatos competitivos.
+
+---
+
+## 8. Validación cruzada orientada a ranking clínico
+
+Dado que el objetivo operativo del sistema es priorizar pacientes, se amplió la validación cruzada incorporando métricas top-k sobre los dos modelos principales:
+
+- Random Forest
+- Gradient Boosting
+
+Se analizaron:
+
+- **Recall@25**
+- **Recall@50**
+- **Recall@100**
+- porcentaje de fallecidos en top-k
+
+### 8.1. Resultados
+
+Los resultados medios mostraron que:
+
+- **Gradient Boosting** obtuvo una ligera ventaja en el **top-25**;
+- **Random Forest** mostró mejores resultados medios en **top-50** y **top-100**.
+
+### 8.2. Interpretación
+
+La comparación top-k reveló que no existe un dominador absoluto en todos los cortes del ranking. Gradient Boosting se comporta ligeramente mejor en la zona más extrema del ranking, mientras que Random Forest ofrece un comportamiento más equilibrado al ampliar el número de pacientes priorizados.
+
+En conjunto, ambos modelos resultan adecuados para el caso de uso, aunque Random Forest fue considerado el candidato más equilibrado al combinar validación probabilística y validación orientada a ranking.
+
+---
+
+## 9. Ajuste de hiperparámetros del modelo seleccionado
+
+Una vez identificado Random Forest como candidato principal, se realizó un ajuste acotado de hiperparámetros mediante `GridSearchCV` y validación cruzada estratificada.
+
+La búsqueda incluyó:
+
+- número de árboles;
+- profundidad máxima;
+- tamaño mínimo de hoja;
+- número de variables consideradas en cada partición.
+
+### 9.1. Mejor configuración encontrada
+
+La mejor combinación obtenida fue:
+
+- `n_estimators = 500`
+- `max_depth = None`
+- `min_samples_leaf = 5`
+- `max_features = 'sqrt'`
+
+con un **AUC medio en validación cruzada de 0.8253**.
+
+### 9.2. Interpretación del tuning
+
+La mejora respecto a la configuración inicial fue moderada, lo que indica que el modelo ya partía de una parametrización razonable. Además, las mejores configuraciones presentaron un patrón consistente, lo que sugiere que el rendimiento del modelo es relativamente estable y no depende de un ajuste extremadamente fino.
+
+---
+
+## 10. Evaluación final del Random Forest ajustado
+
+El Random Forest ajustado se volvió a evaluar sobre el conjunto de test original.
+
+### 10.1. Resultados
+
+Resultados probabilísticos:
+
+- **AUC-ROC:** 0.8554
+- **Brier score:** 0.0815
+
+Resultados top-k:
+
+- **Recall@25:** 0.1684
+- **Recall@50:** 0.3263
+- **Recall@100:** 0.4632
+- **% fallecidos top-25:** 0.64
+
+### 10.2. Interpretación
+
+El ajuste produjo una mejora ligera en las métricas probabilísticas y en algunos cortes del ranking, especialmente en Recall@50. Sin embargo, no mejoró todos los tramos del ranking de manera uniforme, ya que el modelo inicial mantenía una ligera ventaja en top-25.
+
+Aun así, considerando el conjunto de evidencias, el Random Forest ajustado se seleccionó como modelo principal del Hito 3 por ofrecer el mejor equilibrio global entre discriminación, calidad probabilística y utilidad operativa.
+
+---
+
+## 11. Interpretabilidad del modelo final
+
+### 11.1. Importancia global de variables
+
+Como primera aproximación a la interpretabilidad, se analizó la importancia global de variables del Random Forest ajustado.
+
+Las variables más relevantes fueron:
+
+- `GCS_mean`
+- `Urine_mean`
+- `BUN_mean`
+- `WBC_mean`
+- `Temp_mean`
+- `HR_mean`
+- `Creatinine_mean`
+- `Age_first`
+- `SysABP_mean`
+
+Este patrón es clínicamente plausible, ya que combina información sobre:
+
+- estado neurológico;
+- función renal y balance hídrico;
+- respuesta inflamatoria/infecciosa;
+- estabilidad hemodinámica;
+- y riesgo basal asociado a la edad.
+
+### 11.2. Interpretabilidad con SHAP
+
+Como complemento, se realizó un análisis global basado en SHAP sobre una muestra del conjunto de test.
+
+Las variables con mayor impacto medio absoluto fueron:
+
+- `GCS_mean`
+- `BUN_mean`
+- `Urine_mean`
+- `Age_first`
+- `Temp_mean`
+
+SHAP confirmó en gran medida el patrón observado en la importancia global del Random Forest. La coincidencia entre ambos enfoques refuerza la idea de que el modelo se apoya en señales clínicamente razonables y no en patrones arbitrarios.
+
+Además, variables como `Gender_first` mostraron una contribución muy reducida, lo que sugiere que el modelo no depende fuertemente de ellas.
+
+---
+
+## 12. Modelo final seleccionado
+
+A partir del conjunto de experimentos realizados, se establece la siguiente jerarquía final:
+
+- **Baseline interpretable:** Logistic Regression
+- **Competidor cercano:** Gradient Boosting
+- **Modelo principal seleccionado:** Random Forest ajustado
+
+La elección final del Random Forest ajustado se justifica por su buen comportamiento global, su solidez en validación cruzada, su rendimiento competitivo en métricas top-k y su interpretabilidad razonable.
+
+---
+
+## 13. Conclusiones
+
+En este Hito 3 se ha completado la fase de modelado, experimentación y validación del proyecto MIMIC-TRIAGE sobre la adaptación a PhysioNet/CinC 2012.
+
+A partir del dataset tabular agregado por estancia, se construyó un baseline interpretable con regresión logística y se comparó con dos modelos no lineales basados en árboles: Random Forest y Gradient Boosting. Los resultados mostraron de forma consistente que los modelos basados en árboles superan al baseline lineal, lo que indica que el problema presenta relaciones no lineales relevantes entre variables clínicas.
+
+La validación cruzada probabilística y la validación cruzada orientada a ranking clínico permitieron concluir que Random Forest y Gradient Boosting son ambos modelos competitivos, aunque Random Forest ofrece el mejor equilibrio global en esta fase. Tras un ajuste acotado de hiperparámetros, el Random Forest ajustado se seleccionó como modelo principal del Hito 3.
+
+Finalmente, el análisis de interpretabilidad mediante importancia global de variables y SHAP mostró que el modelo se apoya en señales clínicamente plausibles, especialmente relacionadas con estado neurológico, función renal, balance hídrico, respuesta inflamatoria y estabilidad hemodinámica.
+
+En conjunto, este hito deja validada una solución de modelado adecuada para el problema planteado y proporciona una base sólida para la siguiente fase de documentación e integración del sistema.
