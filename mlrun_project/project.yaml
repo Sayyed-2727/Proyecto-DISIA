@@ -1,0 +1,18 @@
+kind: project
+metadata:
+  name: mimic-triage
+spec:
+  description: "Proyecto DISIA - MIMIC TRIAGE Deployment with MLRun"
+  source: .
+  functions:
+    - name: train
+      kind: job
+      handler: src.train
+      image: mimic-triage-train:latest
+    - name: serving
+      kind: serving
+      handler: src.infer
+      image: mimic-triage-api:latest
+  artifacts:
+    - name: model
+      path: v3io:///projects/mimic-triage/models

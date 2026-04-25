@@ -1,0 +1,25 @@
+# Dockerfile.api
+
+# 1. Imagen base: Usamos un Linux ligero
+FROM python:3.12-slim
+
+# 2. Directorio de trabajo
+WORKDIR /app
+
+# 3. Instalación de dependencias (Separado para aprovechar la caché de Docker)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 4. Copiamos el código fuente de inferencia y la capa web
+COPY src/ /app/src/
+
+# IMPORTANTE: No hacemos "COPY models/ /app/models/".
+# Confiamos en que el docker-compose inyectará el volumen o que la API se conectará a MLflow.
+
+# 5. Exponer el puerto de comunicación al exterior
+EXPOSE 8000
+
+WORKDIR /app/src
+
+# 6. Comando de arranque: Un servidor web infinito
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
