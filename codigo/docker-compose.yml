@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    container_name: mimic_trainer
+    command: ["sh", "-c", "python src/train_simple.py"]
+    volumes:
+      - ./models:/app/models
+      - ./data/processed:/app/data/processed
+      - ../Hito 2/csvs:/app/Hito 2/csvs
+    networks:
+      - mimic-network
+
+  mimic-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: mimic_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODEL_PATH=/app/models/best_mortality_model.pkl
+    depends_on:
+      - train
+    networks:
+      - mimic-network
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile.dashboard
+    container_name: mimic_dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mimic-api
+    networks:
+      - mimic-network
+    restart: unless-stopped
+
+networks:
+  mimic-network:
+    driver: bridge

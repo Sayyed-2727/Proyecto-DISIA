@@ -1,0 +1,22 @@
+# Dockerfile.train
+FROM python:3.12-slim
+
+WORKDIR /app
+# Instalamos dependencias necesarias para entrenamiento
+RUN pip install --no-cache-dir pandas scikit-learn numpy joblib xgboost
+
+# Copiamos solo el código necesario para entrenar
+# Copiamos código de entrenamiento
+COPY src/ /app/src/
+# El dataset se monta por volumen desde docker-compose
+
+# Comando de entrenamiento completo (pipeline completo)
+CMD ["sh", "-c", "\
+    echo '=== Iniciando pipeline de entrenamiento MIMIC ===' && \
+    echo '=== Paso 1: Ingesta de datos ===' && \
+    python src/data_ingestion.py --output data/raw/mimic_hospital_data.csv --source /app/Hito\\ 2/csvs/processed_features_48h_setA.csv && \
+    echo '=== Paso 2: Feature Engineering ===' && \
+    python src/features.py --input data/raw/mimic_hospital_data.csv --output data/processed/mimic_features.csv --metadata data/artifacts/feature_metadata.json && \
+    echo '=== Paso 3: Entrenamiento del modelo ===' && \
+    python src/train.py --input data/processed/mimic_features.csv --output_model models/best_mortality_model.pkl && \
+    echo '=== Pipeline completado exitosamente ==='"]

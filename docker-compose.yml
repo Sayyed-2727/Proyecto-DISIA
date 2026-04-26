@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  mimic-train:
+    build:
+      context: .
+      dockerfile: codigo/Dockerfile.train
+    container_name: mimic_train
+    working_dir: /app
+    command: python src/train.py --output_model /app/models/best_model.pkl
+    volumes:
+      - ./codigo/models:/app/models
+      - type: bind
+        source: ./Hito 2
+        target: /app/Hito 2
+    networks:
+      - mimic-network
+
+  mimic-api:
+    build:
+      context: .
+      dockerfile: codigo/Dockerfile.api
+    container_name: mimic_api
+    working_dir: /app/src
+    environment:
+      - MODEL_PATH=/app/models/best_model.pkl
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mimic-train
+    volumes:
+      - ./codigo/models:/app/models
+    networks:
+      - mimic-network
+
+  mimic-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.dashboard
+    container_name: mimic_dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mimic-api
+    networks:
+      - mimic-network
+
+networks:
+  mimic-network:
+    driver: bridge

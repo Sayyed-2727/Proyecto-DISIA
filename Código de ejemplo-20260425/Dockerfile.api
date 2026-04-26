@@ -7,8 +7,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # 3. Instalación de dependencias (Separado para aprovechar la caché de Docker)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.api.txt /app/requirements.api.txt
+RUN pip install --no-cache-dir -r /app/requirements.api.txt
 
 # 4. Copiamos el código fuente de inferencia y la capa web
 COPY src/ /app/src/
