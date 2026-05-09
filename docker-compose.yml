@@ -3,11 +3,10 @@ version: "3.8"
 services:
   mimic-train:
     build:
-      context: .
-      dockerfile: codigo/Dockerfile.train
+      context: ./codigo
+      dockerfile: Dockerfile.train
     container_name: mimic_train
     working_dir: /app
-    command: python src/train.py --output_model /app/models/best_model.pkl
     volumes:
       - ./codigo/models:/app/models
       - type: bind
@@ -18,12 +17,12 @@ services:
 
   mimic-api:
     build:
-      context: .
-      dockerfile: codigo/Dockerfile.api
+      context: ./codigo
+      dockerfile: Dockerfile.api
     container_name: mimic_api
     working_dir: /app/src
     environment:
-      - MODEL_PATH=/app/models/best_model.pkl
+      - MODEL_PATH=/app/models/best_mortality_model.pkl
     ports:
       - "8000:8000"
     depends_on:
