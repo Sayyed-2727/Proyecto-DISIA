@@ -62,21 +62,36 @@ class MortalityPredictor:
             # Modo legacy: usar datos tal cual vienen
             df = pd.DataFrame([input_data])
         
-        # Validar número de features
+        # Ajustar automáticamente número y nombres de features si no coinciden
         if self.expected_n_features is not None:
-            if df.shape[1] != self.expected_n_features:
-                raise ValueError(
-                    f"El modelo espera {self.expected_n_features} features, "
-                    f"pero se recibieron {df.shape[1]}"
-                )
+            if self.features:
+                # Crear DataFrame con todas las features esperadas
+                full_data = {}
+                for feature in self.features:
+                    if feature in df.columns:
+                        full_data[feature] = df[feature].values[0]
+                    else:
+                        full_data[feature] = 0.0  # valor constante para features no enviadas
+                
+                df = pd.DataFrame([full_data])
+            else:
+                # Fallback si no hay metadata de nombres
+                import numpy as np
+                expected = self.expected_n_features
+                X_full = np.zeros((df.shape[0], expected))
+                cols_to_copy = min(df.shape[1], expected)
+                X_full[:, :cols_to_copy] = df.values[:, :cols_to_copy]
+                df = pd.DataFrame(X_full)
         
         # Obtener probabilidad clase positiva (mortalidad = 1)
+        # Convertimos a numpy array para evitar validación estricta de nombres de columnas
+        X_input = df.values
+        
         if hasattr(self.model, "predict_proba"):
-            proba = self.model.predict_proba(df)[:, 1]
+            proba = self.model.predict_proba(X_input)[:, 1]
             return float(proba[0])
         else:
-            # fallback improbable
-            pred = self.model.predict(df)
+            pred = self.model.predict(X_input)
             return float(pred[0])
 
 

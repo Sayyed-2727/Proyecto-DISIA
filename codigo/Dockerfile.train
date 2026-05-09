@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir pandas scikit-learn numpy joblib xgboost
 # Copiamos solo el código necesario para entrenar
 # Copiamos código de entrenamiento
 COPY src/ /app/src/
+
+# Copiamos los datos necesarios para entrenar
+COPY data/ /app/data/
 # El dataset se monta por volumen desde docker-compose
 
 # Comando de entrenamiento completo (pipeline completo)
