@@ -44,6 +44,36 @@ services:
     networks:
       - mimic-network
 
+  prometheus:
+    image: prom/prometheus
+    container_name: mimic_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - mimic-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: mimic_grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - mimic-network
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: mimic_alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - mimic-network
+
 networks:
   mimic-network:
     driver: bridge

@@ -1,0 +1,33 @@
+groups:
+  - name: mimic_alerts
+    rules:
+
+      # 🔹 Alerta operativa - Alta latencia
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(api_request_latency_seconds_bucket[1m])) > 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latencia en API"
+          description: "La latencia p95 supera los 2 segundos"
+
+      # 🔹 Alerta modelo - Bajo F1
+      - alert: LowModelF1
+        expr: model_f1_score < 0.7
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "F1 score bajo"
+          description: "El modelo ha bajado de F1 < 0.7"
+
+      # 🔹 Alerta drift
+      - alert: DataDriftDetected
+        expr: data_drift_score > 0.5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Data drift detectado"
+          description: "Se ha detectado drift significativo en los datos"
