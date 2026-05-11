@@ -2,11 +2,12 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 from infer import MortalityPredictor
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import time
 import pandas as pd
 from drift import DriftDetector
 import random
+import psutil
 
 # Instanciamos la aplicación FastAPI
 app = FastAPI(
@@ -58,6 +59,19 @@ MODEL_ERRORS = Counter(
 )
 
 # -----------------------------
+# Métricas Infraestructura (CPU / RAM)
+# -----------------------------
+SYSTEM_CPU_USAGE = Gauge(
+    "system_cpu_usage_percent",
+    "Current system CPU usage percentage"
+)
+
+SYSTEM_MEMORY_USAGE = Gauge(
+    "system_memory_usage_percent",
+    "Current system memory usage percentage"
+)
+
+# -----------------------------
 # Data Drift Setup
 # -----------------------------
 DRIFT_THRESHOLD = 50
@@ -85,6 +99,10 @@ def predict_mortality(data: PatientInput, request: Request):
     """
     start_time = time.time()
     REQUEST_COUNT.labels(endpoint="/predict", method="POST").inc()
+
+    # Actualizar métricas CPU y RAM
+    SYSTEM_CPU_USAGE.set(psutil.cpu_percent())
+    SYSTEM_MEMORY_USAGE.set(psutil.virtual_memory().percent)
 
     try:
         # A/B routing (20% challenger)
