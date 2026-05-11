@@ -1,0 +1,54 @@
+{
+  "id": null,
+  "title": "MIMIC MLOps Monitoring",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API Requests",
+      "targets": [
+        {
+          "expr": "api_request_count_total",
+          "legendFormat": "Requests"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Prediction Count",
+      "targets": [
+        {
+          "expr": "model_prediction_total",
+          "legendFormat": "Predictions"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Model Errors",
+      "targets": [
+        {
+          "expr": "model_errors_total",
+          "legendFormat": "Errors"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Data Drift Score",
+      "targets": [
+        {
+          "expr": "data_drift_score",
+          "legendFormat": "Drift"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+    }
+  ]
+}

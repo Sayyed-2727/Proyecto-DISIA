@@ -7,5 +7,5 @@ route:
 receivers:
   - name: "default-receiver"
     webhook_configs:
-      - url: "http://localhost:5001/alert"
+      - url: "http://mimic-api:8000/alert"
         send_resolved: true

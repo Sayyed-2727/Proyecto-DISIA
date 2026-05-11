@@ -3,7 +3,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 # Instalamos dependencias necesarias para entrenamiento
-RUN pip install --no-cache-dir pandas scikit-learn numpy joblib xgboost
+RUN pip install --no-cache-dir pandas scikit-learn numpy joblib xgboost prometheus-client
 
 # Copiamos solo el código necesario para entrenar
 # Copiamos código de entrenamiento

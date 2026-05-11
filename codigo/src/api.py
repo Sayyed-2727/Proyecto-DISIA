@@ -17,7 +17,7 @@ app = FastAPI(
 
 # Cargamos el predictor en el contexto global
 champion_model = MortalityPredictor(
-    model_path=os.getenv("MODEL_PATH", "/app/models/best_model.pkl")
+    model_path=os.getenv("MODEL_PATH", "/app/models/best_mortality_model.pkl")
 )
 
 # Intentar cargar challenger si existe
@@ -130,6 +130,8 @@ def predict_mortality(data: PatientInput, request: Request):
         )
 
 # Endpoint de métricas para Prometheus
+from fastapi import Response
+
 @app.get("/metrics")
 def metrics():
-    return generate_latest()
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

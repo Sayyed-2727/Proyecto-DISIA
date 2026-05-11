@@ -1,4 +1,32 @@
 groups:
+  - name: mimic-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: increase(model_errors_total[1m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High model error rate detected"
+          description: "More than 5 model errors in the last minute."
+
+      - alert: HighDriftScore
+        expr: data_drift_score > 0.3
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data drift detected"
+          description: "Drift score exceeded threshold of 0.3."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket[1m])) by (le)) > 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile latency is above 1 second."
   - name: mimic_alerts
     rules:
 

@@ -29,6 +29,9 @@ services:
       - mimic-train
     volumes:
       - ./codigo/models:/app/models
+      - type: bind
+        source: ./Hito 2
+        target: /app/Hito 2
     networks:
       - mimic-network
 
@@ -51,8 +54,11 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
     networks:
       - mimic-network
+    depends_on:
+      - alertmanager
 
   grafana:
     image: grafana/grafana
@@ -61,6 +67,9 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - mimic-network
 
