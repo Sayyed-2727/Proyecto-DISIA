@@ -1,14 +1,43 @@
 version: "3.8"
 
 services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.1
+    container_name: mimic_mlflow
+    command:
+      [
+        "mlflow",
+        "server",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000",
+        "--backend-store-uri",
+        "sqlite:////mlflow/mlflow.db",
+        "--default-artifact-root",
+        "/mlflow/artifacts",
+      ]
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow-data:/mlflow
+    networks:
+      - mimic-network
+    restart: unless-stopped
+
   mimic-train:
     build:
       context: ./codigo
       dockerfile: Dockerfile.train
     container_name: mimic_train
     working_dir: /app
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
     volumes:
       - ./codigo/models:/app/models
+      - ./codigo/data:/app/data
       - type: bind
         source: ./Hito 2
         target: /app/Hito 2
@@ -29,11 +58,13 @@ services:
       - mimic-train
     volumes:
       - ./codigo/models:/app/models
+      - ./codigo/data:/app/data
       - type: bind
         source: ./Hito 2
         target: /app/Hito 2
     networks:
       - mimic-network
+    restart: unless-stopped
 
   mimic-dashboard:
     build:
@@ -46,6 +77,7 @@ services:
       - mimic-api
     networks:
       - mimic-network
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus

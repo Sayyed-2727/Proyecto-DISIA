@@ -4,9 +4,23 @@ import requests
 st.set_page_config(page_title="MIMIC TRIAGE Dashboard", layout="wide")
 
 st.title("🏥 MIMIC-TRIAGE Risk Prediction Dashboard")
-st.markdown("Introduce las variables clínicas del paciente para estimar el riesgo de mortalidad hospitalaria.")
+st.markdown(
+    "Introduce las variables clínicas del paciente para estimar el riesgo de mortalidad hospitalaria."
+)
 
 API_URL = "http://mimic-api:8000/predict"
+HEALTH_URL = "http://mimic-api:8000/health"
+
+with st.sidebar:
+    st.subheader("🧪 API Status")
+    try:
+        health = requests.get(HEALTH_URL, timeout=2).json()
+        if health.get("status") == "ok":
+            st.success("API: OK")
+        else:
+            st.warning(f"API: {health}")
+    except Exception as e:
+        st.error(f"API: DOWN ({e})")
 
 # -----------------------------
 # Sidebar - Clinical Features
@@ -36,30 +50,38 @@ input_data = {
 # -----------------------------
 # Prediction Button
 # -----------------------------
-if st.button("Predict Mortality Risk"):
-    try:
-        response = requests.post(API_URL, json=input_data)
+col1, col2 = st.columns([1, 1], gap="large")
 
-        if response.status_code == 200:
-            result = response.json()
+with col1:
+    st.subheader("Patient Summary")
+    st.json(input_data)
 
-            risk = result.get("mortality_risk_probability", None)
-            high_risk = result.get("high_risk", False)
+with col2:
+    st.subheader("Prediction")
 
-            if risk is not None:
-                st.subheader("Prediction Result")
+    if st.button("Predict Mortality Risk", type="primary"):
+        try:
+            response = requests.post(API_URL, json=input_data, timeout=10)
 
-                st.metric("Mortality Risk Probability", f"{risk:.2%}")
+            if response.status_code == 200:
+                result = response.json()
 
-                if high_risk:
-                    st.error("⚠️ High Mortality Risk Detected")
+                risk = result.get("mortality_risk_probability", None)
+                high_risk = result.get("high_risk", False)
+                model_version = result.get("model_version", "unknown")
+
+                if risk is not None:
+                    st.caption(f"Model served: {model_version}")
+                    st.metric("Mortality Risk Probability", f"{risk:.2%}")
+
+                    if high_risk:
+                        st.error("High Mortality Risk Detected")
+                    else:
+                        st.success("Low Mortality Risk")
                 else:
-                    st.success("✅ Low Mortality Risk")
-
+                    st.error(f"Unexpected response: {result}")
             else:
-                st.error(f"Unexpected response: {result}")
-        else:
-            st.error(f"API Error: {response.text}")
+                st.error(f"API Error: {response.text}")
 
-    except Exception as e:
-        st.error(f"Connection Error: {e}")
+        except Exception as e:
+            st.error(f"Connection Error: {e}")

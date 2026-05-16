@@ -1,13 +1,16 @@
 import os
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
-from infer import MortalityPredictor
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-import time
-import pandas as pd
-from drift import DriftDetector
 import random
+import time
+
+import pandas as pd
 import psutil
+from fastapi import FastAPI, HTTPException, Request, Response
+from infer import MortalityPredictor
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
+                               generate_latest)
+from pydantic import BaseModel, Field
+
+from drift import DriftDetector
 
 # Instanciamos la aplicación FastAPI
 app = FastAPI(
@@ -148,8 +151,11 @@ def predict_mortality(data: PatientInput, request: Request):
         )
 
 # Endpoint de métricas para Prometheus
-from fastapi import Response
-
 @app.get("/metrics")
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
