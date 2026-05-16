@@ -1,0 +1,41 @@
+groups:
+  - name: mimic-mlops-alerts
+    rules:
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[2m]) 
+              / rate(http_requests_total[2m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High API Error Rate"
+          description: "API error rate is above 5% for 2 minutes."
+
+      - alert: HighPredictionLatency
+        expr: (rate(request_latency_seconds_sum[2m]) 
+              / rate(request_latency_seconds_count[2m])) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Prediction Latency"
+          description: "Average prediction latency above 800ms."
+
+      - alert: ModelDriftRiskShift
+        expr: abs(avg_over_time(model_prediction_probability[10m]) - 0.5) > 0.25
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Potential Risk Distribution Shift"
+          description: "Average predicted probability deviated significantly."
+
+      - alert: APIDown
+        expr: up{job="mimic_api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API Down"
+          description: "mimic_api target is down."

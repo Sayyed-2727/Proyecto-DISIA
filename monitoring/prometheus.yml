@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: "mimic-api"
+    static_configs:
+      - targets: ["mimic-api:8000"]
+    metrics_path: /metrics
