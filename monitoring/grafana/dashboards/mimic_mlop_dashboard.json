@@ -1,111 +1,133 @@
 {
   "id": null,
   "uid": "mimic-mlops",
-  "title": "MIMIC MLOps Professional Dashboard",
+  "title": "MIMIC MLOps - Production Monitoring",
   "tags": ["mlops", "mimic", "production"],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 3,
   "refresh": "10s",
   "panels": [
+
     {
       "type": "stat",
-      "title": "API Requests / sec",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "title": "Requests per Second",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
       "targets": [
         {
-          "expr": "rate(http_requests_total[1m])",
+          "expr": "rate(api_request_count_total[1m])",
           "legendFormat": "RPS"
         }
       ]
     },
+
     {
       "type": "stat",
-      "title": "API Error Rate (%)",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "title": "Prediction Rate",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
       "targets": [
         {
-          "expr": "rate(http_requests_total{status=~\"4..|5..\"}[1m]) / rate(http_requests_total[1m]) * 100",
-          "legendFormat": "Error %"
+          "expr": "rate(model_prediction_total[1m])",
+          "legendFormat": "Pred/sec"
         }
       ]
     },
+
     {
       "type": "stat",
-      "title": "Prediction Latency (avg ms)",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "title": "API Errors",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
       "targets": [
         {
-          "expr": "rate(request_latency_seconds_sum[1m]) / rate(request_latency_seconds_count[1m]) * 1000",
-          "legendFormat": "Latency ms"
+          "expr": "rate(model_errors_total[1m])",
+          "legendFormat": "Errors/sec"
         }
       ]
     },
+
     {
       "type": "stat",
-      "title": "Model Prediction Rate",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "title": "Average Prediction Probability",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
       "targets": [
         {
-          "expr": "rate(model_predictions_total[1m])",
-          "legendFormat": "Predictions/sec"
+          "expr": "avg_over_time(model_prediction_total[5m])",
+          "legendFormat": "Avg Confidence"
         }
       ]
     },
+
+    {
+      "type": "stat",
+      "title": "CPU Usage (%)",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "system_cpu_usage_percent",
+          "legendFormat": "CPU %"
+        }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Memory Usage (%)",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "system_memory_usage_percent",
+          "legendFormat": "RAM %"
+        }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "p95 Latency (seconds)",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(api_request_latency_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Champion vs Challenger Traffic",
+      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "model_version_served_total",
+          "legendFormat": "{{version}}"
+        }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Drift Indicator (PSI Placeholder)",
+      "gridPos": { "x": 12, "y": 4, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "0",
+          "legendFormat": "PSI"
+        }
+      ]
+    },
+
     {
       "type": "timeseries",
-      "title": "Predicted Risk Distribution",
-      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "title": "API Latency Trend",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
       "targets": [
         {
-          "expr": "avg(model_prediction_probability)",
-          "legendFormat": "Avg Risk"
-        }
-      ]
-    },
-    {
-      "type": "timeseries",
-      "title": "HTTP Status Codes",
-      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
-      "targets": [
-        {
-          "expr": "rate(http_requests_total[1m])",
-          "legendFormat": "{{status}}"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "Model AUC (Champion)",
-      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 4 },
-      "targets": [
-        {
-          "expr": "model_auc",
-          "legendFormat": "AUC"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "Active Model Version",
-      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 4 },
-      "targets": [
-        {
-          "expr": "model_version",
-          "legendFormat": "Version"
-        }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "API Health",
-      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 4 },
-      "targets": [
-        {
-          "expr": "up{job=\"mimic_api\"}",
-          "legendFormat": "Health"
+          "expr": "rate(api_request_latency_seconds_sum[1m]) / rate(api_request_latency_seconds_count[1m])",
+          "legendFormat": "Avg Latency"
         }
       ]
     }
+
   ]
 }

@@ -139,6 +139,27 @@ def predict_mortality(data: PatientInput, request: Request):
             "high_risk": mortality_risk >= 0.5
         }
 
+        # ==============================
+        # AUDITORÍA DE PREDICCIONES (HITO 5)
+        # ==============================
+        import json
+        from datetime import datetime
+        from pathlib import Path
+
+        audit_path = Path("logs/prediction_audit.jsonl")
+        audit_path.parent.mkdir(parents=True, exist_ok=True)
+
+        audit_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "model_version": model_version,
+            "inputs": data.dict(),
+            "probability": mortality_risk,
+            "high_risk": mortality_risk >= 0.5
+        }
+
+        with open(audit_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(audit_entry) + "\n")
+
         REQUEST_LATENCY.labels(endpoint="/predict").observe(time.time() - start_time)
 
         return response
