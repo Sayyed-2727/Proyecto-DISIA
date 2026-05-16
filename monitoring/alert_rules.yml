@@ -1,61 +1,41 @@
 groups:
-  - name: mimic-alerts
+  - name: mimic-mlops-alerts
     rules:
-      - alert: HighErrorRate
-        expr: increase(model_errors_total[1m]) > 5
-        for: 1m
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[2m]) 
+              / rate(http_requests_total[2m]) * 100 > 5
+        for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "High model error rate detected"
-          description: "More than 5 model errors in the last minute."
+          summary: "High API Error Rate"
+          description: "API error rate is above 5% for 2 minutes."
 
-      - alert: HighDriftScore
-        expr: data_drift_score > 0.3
+      - alert: HighPredictionLatency
+        expr: (rate(request_latency_seconds_sum[2m]) 
+              / rate(request_latency_seconds_count[2m])) > 0.8
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "Data drift detected"
-          description: "Drift score exceeded threshold of 0.3."
+          summary: "High Prediction Latency"
+          description: "Average prediction latency above 800ms."
 
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket[1m])) by (le)) > 1
-        for: 1m
+      - alert: ModelDriftRiskShift
+        expr: abs(avg_over_time(model_prediction_probability[10m]) - 0.5) > 0.25
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High API latency"
-          description: "95th percentile latency is above 1 second."
-  - name: mimic_alerts
-    rules:
+          summary: "Potential Risk Distribution Shift"
+          description: "Average predicted probability deviated significantly."
 
-      # 🔹 Alerta operativa - Alta latencia
-      - alert: HighAPILatency
-        expr: histogram_quantile(0.95, rate(api_request_latency_seconds_bucket[1m])) > 2
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Alta latencia en API"
-          description: "La latencia p95 supera los 2 segundos"
-
-      # 🔹 Alerta modelo - Bajo F1
-      - alert: LowModelF1
-        expr: model_f1_score < 0.7
+      - alert: APIDown
+        expr: up{job="mimic_api"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "F1 score bajo"
-          description: "El modelo ha bajado de F1 < 0.7"
-
-      # 🔹 Alerta drift
-      - alert: DataDriftDetected
-        expr: data_drift_score > 0.5
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Data drift detectado"
-          description: "Se ha detectado drift significativo en los datos"
+          summary: "API Down"
+          description: "mimic_api target is down."

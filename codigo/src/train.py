@@ -133,18 +133,57 @@ def main(args):
                 best_model_name = model_name
                 best_run_id = run.info.run_id
 
+    # ==============================
+    # REGISTRO COMPATIBLE CON TU VERSIÓN DE MLFLOW
+    # ==============================
+    print(f"\nRegistrando modelo en MLflow Model Registry como: {args.registered_model_name}")
+
+    # 1️⃣ Guardar modelo como artifact estándar (SIN logged-models API)
+    model_uri = f"runs:/{best_run_id}/model"
+
+    # 2️⃣ Crear modelo registrado si no existe
+    client = mlflow.tracking.MlflowClient()
+    try:
+        client.create_registered_model(args.registered_model_name)
+        print(f"Modelo registrado '{args.registered_model_name}' creado.")
+    except Exception:
+        print(f"Modelo registrado '{args.registered_model_name}' ya existe.")
+
+    # 3️⃣ Crear nueva versión manualmente (compatible con MLflow antiguo)
+    model_version = client.create_model_version(
+        name=args.registered_model_name,
+        source=model_uri,
+        run_id=best_run_id,
+    )
+
+    latest_version = model_version.version
+
+    # 4️⃣ Promover automáticamente a Production
+    client.transition_model_version_stage(
+        name=args.registered_model_name,
+        version=latest_version,
+        stage="Production",
+        archive_existing_versions=True,
+    )
+
     # Guardar bundle local para serving (champion)
     output_model_path.parent.mkdir(parents=True, exist_ok=True)
     model_bundle = {
         "model": best_overall_model,
         "feature_store": feature_store.to_json_dict(),
         "metrics": {"auc": float(best_overall_auc), "model_name": best_model_name},
-        "mlflow": {"tracking_uri": mlflow_tracking_uri, "best_run_id": best_run_id},
+        "mlflow": {
+            "tracking_uri": mlflow_tracking_uri,
+            "best_run_id": best_run_id,
+            "registered_model": args.registered_model_name,
+            "version": latest_version,
+        },
     }
     joblib.dump(model_bundle, output_model_path)
 
     print("\nEntrenamiento finalizado.")
     print(f"Mejor modelo (Champion): {best_model_name} (AUC={best_overall_auc:.4f})")
+    print(f"Modelo registrado como '{args.registered_model_name}' versión {latest_version} (Production)")
     print(f"Modelo bundle guardado en {output_model_path}")
     print(f"MLflow tracking URI: {mlflow_tracking_uri}")
     print(f"MLflow best_run_id: {best_run_id}")

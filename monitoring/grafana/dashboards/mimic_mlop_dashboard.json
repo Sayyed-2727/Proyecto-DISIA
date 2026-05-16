@@ -1,0 +1,111 @@
+{
+  "id": null,
+  "uid": "mimic-mlops",
+  "title": "MIMIC MLOps Professional Dashboard",
+  "tags": ["mlops", "mimic", "production"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API Requests / sec",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "RPS"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "API Error Rate (%)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{status=~\"4..|5..\"}[1m]) / rate(http_requests_total[1m]) * 100",
+          "legendFormat": "Error %"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Prediction Latency (avg ms)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "rate(request_latency_seconds_sum[1m]) / rate(request_latency_seconds_count[1m]) * 1000",
+          "legendFormat": "Latency ms"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Model Prediction Rate",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "rate(model_predictions_total[1m])",
+          "legendFormat": "Predictions/sec"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Predicted Risk Distribution",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "avg(model_prediction_probability)",
+          "legendFormat": "Avg Risk"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Status Codes",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Model AUC (Champion)",
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "model_auc",
+          "legendFormat": "AUC"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Active Model Version",
+      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "model_version",
+          "legendFormat": "Version"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "API Health",
+      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "up{job=\"mimic_api\"}",
+          "legendFormat": "Health"
+        }
+      ]
+    }
+  ]
+}
